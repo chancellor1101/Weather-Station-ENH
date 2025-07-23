@@ -2,8 +2,11 @@
 #include "webserver_utils.h"
 #include <ArduinoJson.h>
 #include "display.h"
+#include "mqtt_utils.h"
 
-void handleRoot() {
+
+void handleRoot()
+{
   String html = R"rawliteral(
     <!DOCTYPE html>
     <html>
@@ -25,7 +28,8 @@ void handleRoot() {
       <h1>ESP32 Weather Station</h1>
       <p>Your weather station is up and running!</p>
       <p>View sensor data in JSON format: <a href=\"/json\">/json</a></p>
-      <p><b><a href=\"/config\">Configure WiFi/MQTT Settings</a></b></p>
+<p><b><a href="/mqtt-config">Configure MQTT Settings</a></b></p>
+<p><b><a href="/config">Launch WiFiManager</a></b></p>
       <p>Current IP: <code>)rawliteral";
   html += WiFi.localIP().toString();
   html += R"rawliteral(</code></p>
@@ -36,14 +40,18 @@ void handleRoot() {
   server.send(200, "text/html", html);
 }
 
-void handleJsonStatus() {
+void handleJsonStatus()
+{
   StaticJsonDocument<512> doc;
   doc["temperature_F"] = currentTempF;
   doc["pressure_inHg"] = currentPressureInHg;
-  if (lastDistanceMiles >= 0) {
+  if (lastDistanceMiles >= 0)
+  {
     doc["last_lightning_distance_miles"] = lastDistanceMiles;
     doc["last_lightning_energy"] = lastEnergy;
-  } else {
+  }
+  else
+  {
     doc["last_lightning_distance_miles"] = "N/A";
     doc["last_lightning_energy"] = "N/A";
   }
@@ -63,14 +71,57 @@ void handleJsonStatus() {
   server.send(200, "application/json", jsonString);
 }
 
-void handleConfig() {
+void handleConfig()
+{
   server.send(200, "text/html", "Launching configuration portal... You will be redirected to the AP.");
   Serial.println("Manually launching WiFiManager configuration portal...");
   lcd.clear();
-  lcd.setCursor(0,0);
+  lcd.setCursor(0, 0);
   lcd.print("Config Mode...");
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   lcd.print("Connect to AP:");
   delay(100);
   wm.startConfigPortal("WeatherStationSetup");
+}
+
+void handleMQTTConfigForm()
+{
+  String html = R"rawliteral(
+    <!DOCTYPE html>
+    <html>
+    <head><title>MQTT Config</title></head>
+    <body>
+      <h2>MQTT Configuration</h2>
+      <form method='POST' action='/mqtt-config'>
+        Host: <input name='host' value=')"rawliteral" + String(mqttConfig.host) + R"rawliteral('><br>
+        Port: <input name='port' type='number' value=')"rawliteral" + String(mqttConfig.port) + R"rawliteral('><br>
+        Username: <input name='username' value=')"rawliteral" + String(mqttConfig.username) + R"rawliteral('><br>
+        Password: <input name='password' type='password' value=')"rawliteral" + String(mqttConfig.password) + R"rawliteral('><br>
+        Topic: <input name='topic' value=')"rawliteral" + String(mqttConfig.topic) + R"rawliteral('><br>
+        <input type='submit' value='Save'>
+      </form>
+    </body>
+    </html>
+  )rawliteral";
+
+  server.send(200, "text/html", html);
+}
+
+void handleMQTTConfigSubmit()
+{
+  if (server.hasArg("host"))
+    strncpy(mqttConfig.host, server.arg("host").c_str(), sizeof(mqttConfig.host));
+  if (server.hasArg("port"))
+    mqttConfig.port = server.arg("port").toInt();
+  if (server.hasArg("username"))
+    strncpy(mqttConfig.username, server.arg("username").c_str(), sizeof(mqttConfig.username));
+  if (server.hasArg("password"))
+    strncpy(mqttConfig.password, server.arg("password").c_str(), sizeof(mqttConfig.password));
+  if (server.hasArg("topic"))
+    strncpy(mqttConfig.topic, server.arg("topic").c_str(), sizeof(mqttConfig.topic));
+
+  saveMQTTConfig();
+  reconnectMQTT();
+
+  server.send(200, "text/plain", "MQTT config saved. Reconnecting...");
 }

@@ -9,9 +9,9 @@
 #include <WiFi.h> // For ESP32 Wi-Fi
 #include <DNSServer.h>
 #include <WebServer.h>
-#include <WiFiManager.h> // https://github.com/tzapu/WiFiManager
+#include <WiFiManager.h>  // https://github.com/tzapu/WiFiManager
 #include <PubSubClient.h> // https://github.com/knolleary/pubsubclient
-#include <ArduinoJson.h> // For JSON serialization
+#include <ArduinoJson.h>  // For JSON serialization
 #include "globals.h"
 #include "buzzer.h"
 #include "display.h"
@@ -26,7 +26,7 @@ Adafruit_BMP280 bmp; // I2C mode
 
 // --- Pins ---
 const int lightningInt = 26; // Example ESP32 GPIO pin for interrupt
-int spiCS = 27;             // Example ESP32 GPIO pin for SPI CS
+int spiCS = 27;              // Example ESP32 GPIO pin for SPI CS
 
 // --- Global Variables for Sensor/Display Logic ---
 int intVal = 0;
@@ -40,30 +40,27 @@ bool alertActive = false;
 unsigned long alertStartMillis = 0;
 int lastClockMinute = -1; // for tracking minute change
 
-float currentTempF = 0.0;     // Temperature in Fahrenheit
+float currentTempF = 0.0;        // Temperature in Fahrenheit
 float currentPressureInHg = 0.0; // Pressure in inches of Hg
-int lastDistanceMiles = -1;   // Distance in miles
-int lastEnergy = -1;          // lastEnergy declaration
+int lastDistanceMiles = -1;      // Distance in miles
+int lastEnergy = -1;             // lastEnergy declaration
 
-unsigned long lastLightningTimeMillis = 0; // Timestamp of the last lightning event
+unsigned long lastLightningTimeMillis = 0;                               // Timestamp of the last lightning event
 const unsigned long lightningClearCooldown = 1UL * 60UL * 60UL * 1000UL; // 1 hour in milliseconds
 
 // --- Custom Character Arrays ---
 byte signalBarsFull[8] = {
-  0b00000, 0b00001, 0b00011, 0b00111, 0b01111, 0b11111, 0b00000, 0b00000
-};
+    0b00000, 0b00001, 0b00011, 0b00111, 0b01111, 0b11111, 0b00000, 0b00000};
 byte lightningBoltDiagonal[8] = {
-  0b10000, 0b11000, 0b01000, 0b00100, 0b00010, 0b00110, 0b01000, 0b10000
-};
+    0b10000, 0b11000, 0b01000, 0b00100, 0b00010, 0b00110, 0b01000, 0b10000};
 byte thermometer[8] = {B00100, B01010, B01010, B01110, B01110, B01110, B11111, B01110};
 byte droplet[8] = {B00100, B00100, B01010, B01010, B10001, B10001, B10001, B01110};
 byte pressure[8] = {B00000, B01110, B10001, B10101, B10001, B01110, B00000, B00000};
 
-
 // --- WI-FI & MQTT GLOBAL VARIABLES ---
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
-WiFiManager wm; // WiFiManager object
+WiFiManager wm;       // WiFiManager object
 WebServer server(80); // Create a web server object on port 80 for the status page
 
 // MQTT Custom Parameters
@@ -87,7 +84,6 @@ WiFiManagerParameter custom_mqtt_topic_pressure("top_p", "pres topic", mqtt_topi
 WiFiManagerParameter custom_mqtt_topic_lightning_dist("top_ld", "dist topic", mqtt_topic_lightning_dist, 40);
 WiFiManagerParameter custom_mqtt_topic_lightning_energy("top_le", "energy topic", mqtt_topic_lightning_energy, 40);
 WiFiManagerParameter custom_mqtt_topic_status("top_s", "status topic", mqtt_topic_status, 40);
-
 
 unsigned long lastMQTTPublishMillis = 0;
 const unsigned long mqttPublishInterval = 5UL * 60UL * 1000UL; // Publish every 5 minutes
@@ -131,7 +127,8 @@ void setup()
     lcd.print("Clock Failure ");
     haltAndCatchFire();
   }
-  if (rtc.lostPower()) { // Check if RTC lost power (battery flat/missing)
+  if (rtc.lostPower())
+  { // Check if RTC lost power (battery flat/missing)
     Serial.println("RTC lost power, setting time!");
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__))); // Set to compile time
   }
@@ -140,10 +137,11 @@ void setup()
   {
     lcd.setCursor(0, 1);
     lcd.print("BMP280 Fail 0x76 ");
-    if (!bmp.begin(0x77)) {
-       lcd.setCursor(0, 1);
-       lcd.print("BMP280 Fail 0x77 ");
-       haltAndCatchFire();
+    if (!bmp.begin(0x77))
+    {
+      lcd.setCursor(0, 1);
+      lcd.print("BMP280 Fail 0x77 ");
+      haltAndCatchFire();
     }
   }
   bmp.setSampling(Adafruit_BMP280::MODE_NORMAL,
@@ -153,7 +151,7 @@ void setup()
                   Adafruit_BMP280::STANDBY_MS_500);
 
   lcd.print("                "); // Clear the "System Start" second line
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   lcd.print("Sensors OK!");
   delay(1500); // Brief confirmation
   lcd.clear();
@@ -161,16 +159,18 @@ void setup()
   playStartupChime();
 
   // --- WIFI & MQTT SETUP ---
-  wm.setAPCallback([](WiFiManager *myWiFiManager){ // Lambda function for AP mode callback
-      Serial.println("Entered WiFi config mode");
-      Serial.print("AP IP: "); Serial.println(WiFi.softAPIP());
-      Serial.print("AP Name: "); Serial.println(myWiFiManager->getConfigPortalSSID());
-      lcd.clear();
-      lcd.setCursor(0,0);
-      lcd.print("Connect to AP:");
-      lcd.setCursor(0,1);
-      lcd.print(myWiFiManager->getConfigPortalSSID());
-      lcd.write((uint8_t)0); // WiFi icon next to AP name
+  wm.setAPCallback([](WiFiManager *myWiFiManager) { // Lambda function for AP mode callback
+    Serial.println("Entered WiFi config mode");
+    Serial.print("AP IP: ");
+    Serial.println(WiFi.softAPIP());
+    Serial.print("AP Name: ");
+    Serial.println(myWiFiManager->getConfigPortalSSID());
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Connect to AP:");
+    lcd.setCursor(0, 1);
+    lcd.print(myWiFiManager->getConfigPortalSSID());
+    lcd.write((uint8_t)0); // WiFi icon next to AP name
   });
 
   // Add all custom parameters to WiFiManager
@@ -190,68 +190,80 @@ void setup()
   // Try to connect to WiFi, or start AP if not configured/failed
   bool res = wm.autoConnect("WeatherStationSetup"); // No password on AP, but easier for user
 
-  if(!res) {
-      Serial.println("Failed to connect to WiFi and config portal timed out!");
-      lcd.clear();
-      lcd.setCursor(0,0);
-      lcd.print("WiFi Error!");
-      lcd.setCursor(0,1);
-      lcd.print("Restarting...");
-      delay(3000);
-      ESP.restart(); // Restart if unable to connect or configure
+  if (!res)
+  {
+    Serial.println("Failed to connect to WiFi and config portal timed out!");
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("WiFi Error!");
+    lcd.setCursor(0, 1);
+    lcd.print("Restarting...");
+    delay(3000);
+    ESP.restart(); // Restart if unable to connect or configure
   }
-  else {
-      Serial.println("WiFi connected!");
-      lcd.clear();
-      lcd.setCursor(0,0);
-      lcd.write((uint8_t)0); // Display Wi-Fi icon
-      lcd.print(" WiFi Connected");
-      lcd.setCursor(0,1);
-      lcd.print(WiFi.localIP()); // Show local IP
-      delay(2000);
+  else
+  {
+    Serial.println("WiFi connected!");
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.write((uint8_t)0); // Display Wi-Fi icon
+    lcd.print(" WiFi Connected");
+    lcd.setCursor(0, 1);
+    lcd.print(WiFi.localIP()); // Show local IP
+    delay(2000);
 
-      // --- START WEB SERVER AND DEFINE HANDLERS ---
-      server.on("/", handleRoot); // Handle root URL
-      server.on("/json", handleJsonStatus); // Handle JSON status URL
-      server.on("/config", handleConfig); // NEW: Handle /config URL for re-configuration
-      server.begin(); // Start the web server
-      Serial.println("HTTP server started");
-      // --- END NEW ---
+    // --- START WEB SERVER AND DEFINE HANDLERS ---
+    server.on("/", handleRoot);           // Handle root URL
+    server.on("/json", handleJsonStatus); // Handle JSON status URL
+    server.on("/config", handleConfig);   // NEW: Handle /config URL for re-configuration
+    server.on("/mqtt-config", HTTP_GET, handleMQTTConfigForm);
+    server.on("/mqtt-config", HTTP_POST, handleMQTTConfigSubmit);
+    server.begin(); // Start the web server
+    Serial.println("HTTP server started");
+    // --- END NEW ---
   }
 
   // Once WiFi is connected (either from saved creds or new config),
   // load custom parameters if they were saved or changed.
-  Serial.print("Loaded MQTT Server: "); Serial.println(mqtt_server);
-  Serial.print("Loaded MQTT Port: "); Serial.println(mqtt_port);
+  Serial.print("Loaded MQTT Server: ");
+  Serial.println(mqtt_server);
+  Serial.print("Loaded MQTT Port: ");
+  Serial.println(mqtt_port);
 
   // Test MQTT connection with the loaded parameters
-  if (strlen(mqtt_server) > 0) { // Only test if an MQTT server was provided
-    if (!testMqttConnection(mqtt_server, atoi(mqtt_port), mqtt_username, mqtt_password)) {
+  if (strlen(mqtt_server) > 0)
+  { // Only test if an MQTT server was provided
+    if (!testMqttConnection(mqtt_server, atoi(mqtt_port), mqtt_username, mqtt_password))
+    {
       Serial.println("MQTT test failed after config. Re-entering AP mode.");
       lcd.clear();
-      lcd.setCursor(0,0);
+      lcd.setCursor(0, 0);
       lcd.print("MQTT Test FAIL!");
-      lcd.setCursor(0,1);
+      lcd.setCursor(0, 1);
       lcd.print("Reconfigure AP");
       delay(3000);
       // If MQTT test fails, re-enter AP mode to allow user to correct info
       wm.startConfigPortal("WeatherStationSetup"); // This will block until configured or timed out
-      ESP.restart(); // Restart after re-configuration attempt
+      ESP.restart();                               // Restart after re-configuration attempt
     }
-  } else {
+  }
+  else
+  {
     Serial.println("No MQTT server configured. Skipping MQTT connection.");
-    lcd.setCursor(0,0);
+    lcd.setCursor(0, 0);
     lcd.print("No MQTT config");
     delay(1500);
   }
 
-
   // If we reach here, WiFi is connected and MQTT test was successful (or skipped)
   // Set MQTT server and callback for main operation
-  if (strlen(mqtt_server) > 0) { // Only set up MQTT client if server is provided
+  if (strlen(mqtt_server) > 0)
+  { // Only set up MQTT client if server is provided
     mqttClient.setServer(mqtt_server, atoi(mqtt_port));
     mqttClient.setCallback(mqttCallback); // Set a callback for incoming messages
-  } else {
+  }
+  else
+  {
     Serial.println("MQTT client not initialized due to no server config.");
   }
 
@@ -265,18 +277,20 @@ void loop()
   DateTime now = rtc.now();
 
   // If WiFi is connected, handle HTTP requests
-  if (WiFi.status() == WL_CONNECTED) {
+  if (WiFi.status() == WL_CONNECTED)
+  {
     server.handleClient(); // NEW: Process incoming web requests
   }
 
   // Keep MQTT client connected and processed
-  if (strlen(mqtt_server) > 0) {
-    if (!mqttClient.connected()) {
+  if (strlen(mqtt_server) > 0)
+  {
+    if (!mqttClient.connected())
+    {
       reconnectMqtt();
     }
     mqttClient.loop(); // Must be called frequently to process incoming messages and maintain connection
   }
-
 
   // --- Imperial Conversions ---
   float tempC = bmp.readTemperature();
@@ -307,12 +321,12 @@ void loop()
   }
 
   // --- Clear Lightning Stats after 1 Hour ---
-  if (lastLightningTimeMillis > 0 && nowMillis - lastLightningTimeMillis > lightningClearCooldown) {
-      lastDistanceMiles = -1; // Reset to indicate no recent lightning
-      lastEnergy = -1;        // Reset energy
-      lastLightningTimeMillis = 0; // Reset timestamp
+  if (lastLightningTimeMillis > 0 && nowMillis - lastLightningTimeMillis > lightningClearCooldown)
+  {
+    lastDistanceMiles = -1;      // Reset to indicate no recent lightning
+    lastEnergy = -1;             // Reset energy
+    lastLightningTimeMillis = 0; // Reset timestamp
   }
-
 
   // --- Display Logic ---
   if (alertActive)
@@ -326,9 +340,10 @@ void loop()
       lcd.print(lastDistanceMiles); // Display distance in miles
       lcd.print(" miles!    ");
       // Optional: Flash backlight during alert
-      if ( (nowMillis / 500) % 2 == 0 ) lcd.backlight();
-      else lcd.noBacklight();
-
+      if ((nowMillis / 500) % 2 == 0)
+        lcd.backlight();
+      else
+        lcd.noBacklight();
     }
     else // Alert period ended
     {
@@ -337,8 +352,8 @@ void loop()
       lcd.clear();     // Clear screen after alert
       // Re-initialize main display elements if needed
       lcd.setCursor(0, 0);
-      lcd.write((uint8_t)0); // WiFi icon
-      displayClock(); // Refresh clock
+      lcd.write((uint8_t)0);  // WiFi icon
+      displayClock();         // Refresh clock
       displayScrollingInfo(); // Refresh info
     }
   }
@@ -360,7 +375,8 @@ void loop()
     }
 
     // --- MQTT Publishing ---
-    if (strlen(mqtt_server) > 0 && mqttClient.connected() && nowMillis - lastMQTTPublishMillis > mqttPublishInterval) {
+    if (strlen(mqtt_server) > 0 && mqttClient.connected() && nowMillis - lastMQTTPublishMillis > mqttPublishInterval)
+    {
       lastMQTTPublishMillis = nowMillis;
 
       char payload[32]; // Buffer for string conversions
@@ -368,28 +384,38 @@ void loop()
       // Publish Temperature
       sprintf(payload, "%.1f", currentTempF);
       mqttClient.publish(mqtt_topic_temp, payload);
-      Serial.print("Published Temp: "); Serial.println(payload);
+      Serial.print("Published Temp: ");
+      Serial.println(payload);
 
       // Publish Pressure
       sprintf(payload, "%.2f", currentPressureInHg);
       mqttClient.publish(mqtt_topic_pressure, payload);
-      Serial.print("Published Pressure: "); Serial.println(payload);
+      Serial.print("Published Pressure: ");
+      Serial.println(payload);
 
       // Publish Last Lightning Distance (if available)
-      if (lastDistanceMiles >= 0) {
+      if (lastDistanceMiles >= 0)
+      {
         sprintf(payload, "%d", lastDistanceMiles);
         mqttClient.publish(mqtt_topic_lightning_dist, payload);
-        Serial.print("Published Last Lightning Distance: "); Serial.println(payload);
-      } else {
+        Serial.print("Published Last Lightning Distance: ");
+        Serial.println(payload);
+      }
+      else
+      {
         mqttClient.publish(mqtt_topic_lightning_dist, "none"); // Or an empty string, or specific "no strike" value
       }
 
       // Publish Last Lightning Energy (if available)
-      if (lastEnergy >= 0) {
+      if (lastEnergy >= 0)
+      {
         sprintf(payload, "%d", lastEnergy);
         mqttClient.publish(mqtt_topic_lightning_energy, payload);
-        Serial.print("Published Last Lightning Energy: "); Serial.println(payload);
-      } else {
+        Serial.print("Published Last Lightning Energy: ");
+        Serial.println(payload);
+      }
+      else
+      {
         mqttClient.publish(mqtt_topic_lightning_energy, "none");
       }
     }

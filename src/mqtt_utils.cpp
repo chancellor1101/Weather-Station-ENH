@@ -2,6 +2,16 @@
 #include "mqtt_utils.h"
 #include "display.h"
 #include <Arduino.h>
+#include <EEPROM.h>
+
+mqtt_config_t mqttConfig = {
+  "mqtt.local",     // host
+  1883,             // port
+  "",               // username
+  "",               // password
+  "weather"         // topic
+};
+
 
 void saveCustomParamsCallback() {
   Serial.println("Should save config");
@@ -96,4 +106,20 @@ void reconnectMqtt() {
       delay(5000);
     }
   }
+}
+
+void saveMQTTConfig() {
+  // Replace this with your actual persistence logic
+  EEPROM.put(0, mqttConfig);
+  EEPROM.commit();
+  Serial.println("MQTT config saved to EEPROM");
+}
+
+void reconnectMQTT() {
+  mqttClient.disconnect();
+  delay(100);
+  mqttClient.setServer(mqttConfig.host, mqttConfig.port);
+  // Optionally trigger immediate reconnect here
+  Serial.println("Reconnecting to MQTT with new settings...");
+  // mqtt_connect();  // Uncomment if you have a reconnect function defined
 }
