@@ -1,18 +1,29 @@
+#include <Wire.h>
 #include <Arduino.h>
-
-// put function declarations here:
-int myFunction(int, int);
-
 void setup() {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+  Serial.begin(115200);
+  delay(1000);
+
+  Wire.begin(21, 22); // SDA, SCL — adjust if needed
+  Serial.println("🔍 I2C Scanner starting...");
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-}
+  byte count = 0;
 
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
+  for (byte address = 1; address < 127; ++address) {
+    Wire.beginTransmission(address);
+    if (Wire.endTransmission() == 0) {
+      Serial.printf("✅ I2C device found at 0x%02X\n", address);
+      count++;
+    }
+    delay(5);
+  }
+
+  if (count == 0)
+    Serial.println("❌ No I2C devices found.");
+  else
+    Serial.printf("🎯 %d device(s) found.\n", count);
+
+  delay(5000); // Wait before rescanning
 }
